@@ -1,0 +1,51 @@
+# CMake and local build trees
+/build/
+/build-*/
+**/CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+CTestTestfile.cmake
+Makefile
+compile_commands.json
+Testing/
+
+# Local benchmark and profiling output
+/benchmark/
+/result/
+/logs/
+/changed.txt
+*.log
+*.out
+callgrind.out.*
+cachegrind.out.*
+massif.out.*
+perf.data*
+
+# IDE and agent-local configuration
+/.vscode/
+/.claude/
+/.codex/
+/.agents/
+
+# Local dependency build output and runtime state
+/third_part/
+/rpc_src/third_part/zookeeper/data/
+/rpc_src/third_part/zookeeper/**/target/
+/rpc_src/third_part/zookeeper/**/build/
+/rpc_src/third_part/zookeeper/**/logs/
+/rpc_src/third_part/zookeeper/**/.libs/
+**/autom4te.cache/
+**/.deps/
+*.o
+*.lo
+*.la
+*.a
+*.so
+*.so.*
+
+# Personal documents and local environment files
+*.pdf
+*.swp
+*.swo
+.env
+.env.*

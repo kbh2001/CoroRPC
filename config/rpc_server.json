@@ -1,0 +1,15 @@
+{
+  "listen_ip": "0.0.0.0",
+  "listen_port": 8989,
+  "advertise_ip": "127.0.0.1",
+  "zookeeper_hosts": "127.0.0.1:2181",
+  "service_root": "/rpc",
+  "max_connections": 1024,
+  "max_inflight_per_connection": 256,
+  "max_inflight_requests": 32768,
+  "network_threads": 8,
+  "io_worker_threads": 8,
+  "worker_threads": 2,
+  "max_worker_queue": 16384,
+  "drain_timeout_ms": 10000
+}
