@@ -44,9 +44,31 @@ void CoScope::Join() {
     joined_ = true;
 
     std::unique_lock<std::mutex> lock(gather_.mutex);
-    gather_.cv.wait(lock, [this] {
-        return gather_.remaining.load(std::memory_order_acquire) == 0;
-    });
+    if (gather_.mode == NotifyMode::SpinSemaphore) {
+        lock.unlock();
+
+        // Arm before checking the counter. If completion wins the race, it
+        // changes Armed to Signaled and leaves one semaphore token for us.
+        gather_.wait_state.store(BatchWaitState::Armed, std::memory_order_release);
+        if (gather_.remaining.load(std::memory_order_acquire) != 0) {
+            gather_.waiter->Wait();
+            gather_.wait_state.store(BatchWaitState::Idle, std::memory_order_release);
+        } else if (gather_.wait_state.exchange(
+                       BatchWaitState::Idle, std::memory_order_acq_rel) ==
+                   BatchWaitState::Signaled) {
+            // The final completion raced with the counter check. Consume its
+            // already-posted token so it cannot leak into the next batch.
+            gather_.waiter->Wait();
+        }
+    } else {
+        gather_.cv.wait(lock, [this] {
+            return gather_.remaining.load(std::memory_order_acquire) == 0;
+        });
+    }
+
+    if (gather_.mode == NotifyMode::SpinSemaphore) {
+        lock.lock();
+    }
 
     if (gather_.first_exception) {
         std::exception_ptr exception = std::move(gather_.first_exception);

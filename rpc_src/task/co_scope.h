@@ -15,8 +15,9 @@ namespace rpc::runtime {
 
 // Scope for a batch of tasks submitted from a user thread.
 //
-// Join() blocks the user thread on a condition variable. Use CoroResult when
-// waiting from inside a coroutine.
+// Join() blocks the user thread using the selected notification mechanism
+// (condition variable baseline or semaphore with an optional bounded spin).
+// Use CoroResult when waiting from inside a coroutine.
 //
 // Example:
 //   CoScope scope(coroutine);

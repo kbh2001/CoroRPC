@@ -49,3 +49,7 @@ perf.data*
 *.swo
 .env
 .env.*
+
+#Other_test
+sc.txt
+sc1.txt

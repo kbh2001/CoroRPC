@@ -7,8 +7,11 @@
 #include <exception>
 #include <mutex>
 #include <new>
+#include <optional>
 #include <type_traits>
 #include <utility>
+
+#include "task/batch_waiter.h"
 
 // Task and Gather support submission from user threads to coroutine threads.
 
@@ -77,9 +80,24 @@ struct Task {
 // Completion counter for a batch of tasks. The user thread waits on a condition
 // variable while coroutine threads decrement the counter.
 struct Gather {
+    Gather() : mode(GetNotifyMode())
+    {
+        if (mode == NotifyMode::SpinSemaphore) {
+            waiter.emplace();
+        }
+    }
+
+    Gather(const Gather &) = delete;
+    Gather &operator=(const Gather &) = delete;
+
     std::atomic<size_t> remaining{0};
     std::mutex mutex;
     std::condition_variable cv;
+    NotifyMode mode = GetNotifyMode();
+    // Created only for the semaphore implementation, so the baseline
+    // condition-variable path does not pay semaphore setup costs.
+    std::optional<BatchWaiter> waiter;
+    std::atomic<BatchWaitState> wait_state{BatchWaitState::Idle};
     // Keep the first exception for CoScope::Join(); protected by mutex.
     std::exception_ptr first_exception;
 };

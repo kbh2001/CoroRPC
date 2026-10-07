@@ -190,3 +190,27 @@ config/        Server 配置示例
 CMakeLists.txt 构建入口
 README.md      使用说明
 ```
+
+## 通知机制（2026/10/7）
+
+针对用户线程与 Client 后台协程之间的任务完成通知，新增了基于 semaphore 的通知机制，并支持在等待时进行短暂自旋。默认仍使用 condition variable；需要启用通知机制时，在启动客户端测试程序前于当前 Bash 窗口执行：
+
+```bash
+export CORORPC_NOTIFY_MODE=spin
+./build/brpc_style_test 6 1 8 1 512
+```
+
+如需控制自旋时间，请设置CORORPC_SPIN_NS变量。同时请根据您当前机器配置选择最大允许自旋数量，默认为1。
+
+```bash
+export CORORPC_NOTIFY_MODE=spin
+export CORORPC_SPIN_NS=0
+./build/brpc_style_test 6 1 8 1 512
+```
+
+
+该环境变量只对当前 Shell 及其子进程生效。通知机制主要用于降低等待完成通知时的 futex 和互斥锁开销；在合适的 CPU 与调度环境下，通常可获得约20%的性能收益，futex 调用也会显著减少，测试中减少50%。若要恢复默认的 condition variable 路径，可执行：
+
+```bash
+unset CORORPC_NOTIFY_MODE
+```

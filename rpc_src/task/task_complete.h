@@ -26,11 +26,24 @@ inline void CompleteTask(Task<BufSize> *task, rpc::memory::TaskPool<BufSize> &po
     // Return the task immediately.
     pool.Free(task);
 
-    // Hold the lock across decrement and notify to avoid a lost wakeup in Join().
+    // The condition-variable path retains the original mutex protocol. The
+    // semaphore path uses an atomic armed/signaled state, so successful task
+    // completions do not contend on a mutex just to publish the final event.
     if (gather != nullptr) {
-        std::lock_guard<std::mutex> lock(gather->mutex);
-        if (gather->remaining.fetch_sub(1, std::memory_order_acq_rel) == 1) {
-            gather->cv.notify_one();
+        if (gather->mode == NotifyMode::SpinSemaphore) {
+            if (gather->remaining.fetch_sub(1, std::memory_order_acq_rel) == 1) {
+                BatchWaitState expected = BatchWaitState::Armed;
+                if (gather->wait_state.compare_exchange_strong(
+                        expected, BatchWaitState::Signaled,
+                        std::memory_order_acq_rel, std::memory_order_acquire)) {
+                    gather->waiter->Signal();
+                }
+            }
+        } else {
+            std::lock_guard<std::mutex> lock(gather->mutex);
+            if (gather->remaining.fetch_sub(1, std::memory_order_acq_rel) == 1) {
+                gather->cv.notify_one();
+            }
         }
     }
 }
